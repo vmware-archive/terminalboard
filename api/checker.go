@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -20,22 +21,25 @@ type Checker interface {
 }
 
 type checker struct {
-	apiPrefix string
-	username  string
-	password  string
+	pipelinePrefix string
+	apiPrefix      string
+	username       string
+	password       string
 }
 
 type PipelineStatus struct {
 	Name             string `json:"pipelineName"`
 	Status           string `json:"pipelineStatus"`
 	CurrentlyRunning bool   `json:"currentlyRunning"`
+	URL              string `json:"url"`
 }
 
-func NewChecker(apiPrefix, username, password string) Checker {
+func NewChecker(host, username, password string) Checker {
 	return &checker{
-		apiPrefix: apiPrefix,
-		username:  username,
-		password:  password,
+		pipelinePrefix: fmt.Sprintf("%s/pipelines", host),
+		apiPrefix:      fmt.Sprintf("%s/api/v1/", host),
+		username:       username,
+		password:       password,
 	}
 }
 
@@ -87,7 +91,7 @@ func (c *checker) getPipelineStatuses() []PipelineStatus {
 	for _, pipeline := range pipelines {
 		jobs := c.getPipelineJobs(pipeline)
 		if len(jobs) > 0 {
-			status := getPipelineStatusFromJobs(pipeline, jobs)
+			status := c.getPipelineStatusFromJobs(pipeline, jobs)
 			statuses = append(statuses, status)
 		}
 
@@ -145,11 +149,12 @@ func (c *checker) getFromConcourse(endpoint string) []byte {
 	return body
 }
 
-func getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
+func (c *checker) getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 	pipelineStatus := PipelineStatus{
 		Name:             pipeline,
 		Status:           SUCCESS,
 		CurrentlyRunning: false,
+		URL:              fmt.Sprintf("%s/%s", c.pipelinePrefix, pipeline),
 	}
 
 	for _, job := range jobs {

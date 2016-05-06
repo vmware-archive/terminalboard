@@ -9,12 +9,12 @@ import (
 )
 
 func main() {
-	concourseAPIPrefix := fmt.Sprintf("%s/api/v1/", os.Getenv("CONCOURSE_HOST"))
+	concourseHost := os.Getenv("CONCOURSE_HOST")
 	concourseUsername := os.Getenv("CONCOURSE_USERNAME")
 	concoursePassword := os.Getenv("CONCOURSE_PASSWORD")
 	port := os.Getenv("PORT")
 
-	checker := api.NewChecker(concourseAPIPrefix, concourseUsername, concoursePassword)
+	checker := api.NewChecker(concourseHost, concourseUsername, concoursePassword)
 	router, err := api.NewRouter(checker)
 	if err != nil {
 		panic(err)
