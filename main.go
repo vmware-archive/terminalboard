@@ -12,11 +12,7 @@ func main() {
 	concourseAPIPrefix := fmt.Sprintf("%s/api/v1/", os.Getenv("CONCOURSE_HOST"))
 	concourseUsername := os.Getenv("CONCOURSE_USERNAME")
 	concoursePassword := os.Getenv("CONCOURSE_PASSWORD")
-
 	port := os.Getenv("PORT")
-
-	address := "localhost:" + port
-	fmt.Print(address)
 
 	checker := api.NewChecker(concourseAPIPrefix, concourseUsername, concoursePassword)
 	router, err := api.NewRouter(checker)
@@ -24,8 +20,8 @@ func main() {
 		panic(err)
 	}
 
+	address := fmt.Sprintf(":%s", port)
 	err = http.ListenAndServe(address, router)
-	// err = http.ListenAndServe("localhost:8080", nil)
 	if err != nil {
 		panic(err)
 	}
