@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -104,7 +103,6 @@ func (c *checker) getPipelines() []string {
 
 	var pipelines []atc.Pipeline
 	json.Unmarshal(body, &pipelines)
-	fmt.Printf("Results: %v\n", pipelines)
 
 	var pipelineNames []string
 
@@ -121,7 +119,6 @@ func (c *checker) getPipelineJobs(pipeline string) []atc.Job {
 
 	var jobs []atc.Job
 	json.Unmarshal(body, &jobs)
-	fmt.Printf("Results: %v\n", jobs)
 
 	return jobs
 }
@@ -156,6 +153,9 @@ func getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 	}
 
 	for _, job := range jobs {
+		if pipelineStatus.Status == RED && pipelineStatus.CurrentlyRunning == true {
+			return pipelineStatus
+		}
 		if nextBuild := job.NextBuild; nextBuild != nil && nextBuild.Status == "started" {
 			pipelineStatus.CurrentlyRunning = true
 		}
