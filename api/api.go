@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/tedsuo/rata"
+	"github.com/gorilla/mux"
 )
 
 type RunFunc func() ([]byte, error)
@@ -18,27 +18,14 @@ func NewRouter(c Checker) (http.Handler, error) {
 		checker: c,
 	}
 
-	routes := rata.Routes{
-		{Name: "pipeline_statuses", Method: "GET", Path: "/api/pipeline_statuses"},
-		{Name: "fake_statuses", Method: "GET", Path: "/api/fakes"},
-		// {Name: "root", Method: "GET", Path: "/"},
-	}
+	routa := mux.NewRouter()
+	routa.HandleFunc("/api/pipeline_statuses", r.getHandler(c.GetPipelineStatuses))
+	routa.HandleFunc("/api/fakes", r.getHandler(c.FakeStatuses))
 
-	handlers := rata.Handlers{
-		"pipeline_statuses": r.getHandler(c.GetPipelineStatuses),
-		"fake_statuses":     r.getHandler(c.FakeStatuses),
-		// "root":              r.getHandler(loadRoot),
-	}
-
-	handler, err := rata.NewRouter(routes, handlers)
-	if err != nil {
-		return nil, err
-	}
-
-	return handler, nil
+	return routa, nil
 }
 
-func (r *router) getHandler(run RunFunc) http.Handler {
+func (r *router) getHandler(run RunFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		body, err := run()
 		if err != nil {
@@ -46,7 +33,9 @@ func (r *router) getHandler(run RunFunc) http.Handler {
 			w.Write([]byte(err.Error()))
 			return
 		}
-
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Headers", "X-PINGOTHER, Content-Type")
+		w.Header().Set("Access-Control-Allow-Method", "GET, OPTIONS")
 		w.Write(body)
 	})
 }
