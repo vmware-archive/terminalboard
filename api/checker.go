@@ -9,9 +9,9 @@ import (
 )
 
 const (
-	GREEN  = "GREEN"
-	RED    = "RED"
-	YELLOW = "YELLOW"
+	SUCCESS = "success"
+	FAILURE = "failure"
+	STOPPED = "stopped"
 )
 
 type Checker interface {
@@ -43,22 +43,22 @@ func (c *checker) FakeStatuses() ([]byte, error) {
 	statuses := []PipelineStatus{
 		PipelineStatus{
 			Name:             "first",
-			Status:           GREEN,
+			Status:           SUCCESS,
 			CurrentlyRunning: false,
 		},
 		PipelineStatus{
 			Name:             "second",
-			Status:           RED,
+			Status:           FAILURE,
 			CurrentlyRunning: true,
 		},
 		PipelineStatus{
 			Name:             "another-pipeline-long-name",
-			Status:           YELLOW,
+			Status:           STOPPED,
 			CurrentlyRunning: false,
 		},
 		PipelineStatus{
 			Name:             "yet-another-pipeline-long-name",
-			Status:           GREEN,
+			Status:           SUCCESS,
 			CurrentlyRunning: true,
 		},
 	}
@@ -148,12 +148,12 @@ func (c *checker) getFromConcourse(endpoint string) []byte {
 func getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 	pipelineStatus := PipelineStatus{
 		Name:             pipeline,
-		Status:           GREEN,
+		Status:           SUCCESS,
 		CurrentlyRunning: false,
 	}
 
 	for _, job := range jobs {
-		if pipelineStatus.Status == RED && pipelineStatus.CurrentlyRunning == true {
+		if pipelineStatus.Status == FAILURE && pipelineStatus.CurrentlyRunning == true {
 			return pipelineStatus
 		}
 		if nextBuild := job.NextBuild; nextBuild != nil && nextBuild.Status == "started" {
@@ -163,16 +163,16 @@ func getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 		if job.FinishedBuild != nil {
 			jobStatus := job.FinishedBuild.Status
 
-			if pipelineStatus.Status != RED {
+			if pipelineStatus.Status != FAILURE {
 				switch jobStatus {
 				case "failed":
-					pipelineStatus.Status = RED
+					pipelineStatus.Status = FAILURE
 				case "errored":
-					pipelineStatus.Status = RED
+					pipelineStatus.Status = FAILURE
 				case "paused":
-					pipelineStatus.Status = YELLOW
+					pipelineStatus.Status = STOPPED
 				case "aborted":
-					pipelineStatus.Status = YELLOW
+					pipelineStatus.Status = STOPPED
 				}
 			}
 		}
