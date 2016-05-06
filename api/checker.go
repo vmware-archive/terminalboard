@@ -72,7 +72,12 @@ func (c *checker) FakeStatuses() ([]byte, error) {
 }
 
 func (c *checker) GetPipelineStatuses() ([]byte, error) {
-	return []byte{}, nil
+	statuses := c.getPipelineStatuses()
+	data, err := json.Marshal(statuses)
+	if err != nil {
+		panic(err)
+	}
+	return data, nil
 }
 
 func (c *checker) getPipelineStatuses() []PipelineStatus {
@@ -155,17 +160,20 @@ func getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 			pipelineStatus.CurrentlyRunning = true
 		}
 
-		jobStatus := job.FinishedBuild.Status
-		if jobStatus != RED {
-			switch jobStatus {
-			case "failed":
-				pipelineStatus.Status = RED
-			case "errored":
-				pipelineStatus.Status = RED
-			case "paused":
-				pipelineStatus.Status = YELLOW
-			case "aborted":
-				pipelineStatus.Status = YELLOW
+		if job.FinishedBuild != nil {
+			jobStatus := job.FinishedBuild.Status
+
+			if pipelineStatus.Status != RED {
+				switch jobStatus {
+				case "failed":
+					pipelineStatus.Status = RED
+				case "errored":
+					pipelineStatus.Status = RED
+				case "paused":
+					pipelineStatus.Status = YELLOW
+				case "aborted":
+					pipelineStatus.Status = YELLOW
+				}
 			}
 		}
 	}
