@@ -1,0 +1,7 @@
+---
+applications:
+- name: terminalboard
+  env:
+    CONCOURSE_HOST: https://concourse.ci.cf-app.com
+    CONCOURSE_USERNAME: username
+    CONCOURSE_PASSWORD: password
