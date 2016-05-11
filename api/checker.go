@@ -5,14 +5,9 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"sort"
 
 	"github.com/concourse/atc"
-)
-
-const (
-	SUCCESS = "success"
-	FAILURE = "failure"
-	STOPPED = "stopped"
 )
 
 type Checker interface {
@@ -25,13 +20,6 @@ type checker struct {
 	apiPrefix      string
 	username       string
 	password       string
-}
-
-type PipelineStatus struct {
-	Name             string `json:"pipelineName"`
-	Status           string `json:"pipelineStatus"`
-	CurrentlyRunning bool   `json:"currentlyRunning"`
-	URL              string `json:"url"`
 }
 
 func NewChecker(host, username, password string) Checker {
@@ -76,6 +64,7 @@ func (c *checker) FakeStatuses() ([]byte, error) {
 
 func (c *checker) GetPipelineStatuses() ([]byte, error) {
 	statuses := c.getPipelineStatuses()
+	sort.Sort(PipelineStatuses(statuses))
 	data, err := json.Marshal(statuses)
 	if err != nil {
 		panic(err)
