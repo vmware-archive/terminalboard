@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"sort"
+	"time"
 
 	"github.com/concourse/atc"
 )
@@ -65,6 +66,7 @@ func (c *checker) FakeStatuses() ([]byte, error) {
 func (c *checker) GetPipelineStatuses() ([]byte, error) {
 	statuses := c.getPipelineStatuses()
 	sort.Sort(PipelineStatuses(statuses))
+
 	data, err := json.Marshal(statuses)
 	if err != nil {
 		panic(err)
@@ -73,19 +75,36 @@ func (c *checker) GetPipelineStatuses() ([]byte, error) {
 }
 
 func (c *checker) getPipelineStatuses() []PipelineStatus {
+	fmt.Println("Getting all pipelines")
 	pipelines := c.getPipelines()
+	fmt.Println(fmt.Sprintf(
+		"Getting all pipelines complete, total count: %d", len(pipelines)))
 
 	var statuses []PipelineStatus
 
-	for _, pipeline := range pipelines {
-		jobs := c.getPipelineJobs(pipeline)
-		if len(jobs) > 0 {
-			status := c.getPipelineStatusFromJobs(pipeline, jobs)
-			statuses = append(statuses, status)
-		}
+	startTime := time.Now()
+	fmt.Println("Getting all jobs")
 
+	statusChan := make(chan *PipelineStatus, len(pipelines))
+
+	for _, pipeline := range pipelines {
+		go func(pipelineName string) {
+			statusChan <- c.getPipelineJobsStatus(pipelineName)
+		}(pipeline)
 	}
 
+	for i := 0; i < len(pipelines); i++ {
+		status := <-statusChan
+		if status != nil {
+			statuses = append(statuses, *status)
+		}
+	}
+
+	endTime := time.Now()
+
+	elapsedTime := endTime.Sub(startTime)
+	fmt.Println(fmt.Sprintf(
+		"Getting all jobs complete, took %f seconds", elapsedTime.Seconds()))
 	return statuses
 }
 
@@ -104,6 +123,15 @@ func (c *checker) getPipelines() []string {
 	}
 
 	return pipelineNames
+}
+
+func (c *checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
+	jobs := c.getPipelineJobs(pipeline)
+	if len(jobs) > 0 {
+		status := c.getPipelineStatusFromJobs(pipeline, jobs)
+		return &status
+	}
+	return nil
 }
 
 func (c *checker) getPipelineJobs(pipeline string) []atc.Job {
