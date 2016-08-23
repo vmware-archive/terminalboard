@@ -31,7 +31,6 @@ func (ps PipelineStatuses) Less(i, j int) bool {
 	} else if ps[i].Status == STOPPED && ps[j].Status != STOPPED {
 		return true
 	} else if ps[i].Status == ps[j].Status {
-		// return strings.Compare(ps[i].Name, ps[j].Name) < 0
 		return ps[i].Name < ps[j].Name
 	} else {
 		return false
