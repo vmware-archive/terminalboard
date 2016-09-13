@@ -1,0 +1,7 @@
+---
+applications:
+- name: terminalboard
+  memory: 64M
+  disk: 64M
+  env:
+    GOPACKAGENAME: github.com/mfine30/terminalboard
