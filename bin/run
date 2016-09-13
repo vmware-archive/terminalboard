@@ -1,0 +1,12 @@
+#!/bin/bash
+
+set -e
+
+
+ROOT_DIR=$(cd $(dirname $(dirname $0)) && pwd)
+
+source "$ROOT_DIR/.env"
+"$ROOT_DIR/bin/build"
+
+echo -e "\nStarting Binary..."
+"$ROOT_DIR/out/terminalboard"
