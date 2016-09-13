@@ -5,10 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	gc "github.com/concourse/go-concourse/concourse"
 	"github.com/mfine30/terminalboard/api"
 	capi "github.com/mfine30/terminalboard/concourse/api"
-	"github.com/mfine30/terminalboard/concourse"
 )
 
 const (
@@ -55,15 +53,9 @@ func main() {
 
 	httpClient := capi.OAuthHTTPClient(token, true)
 
-	gClient := gc.NewClient(concourseHost, httpClient)
-	gClient.Team(defaultTeam)
+	checker := api.NewChecker(concourseHost, defaultTeam, httpClient)
 
-	checker := api.NewChecker(concourseHost, concourseUsername, concoursePassword)
-	concourseClient := &concourse.Checker{
-		Client: gClient,
-	}
-
-	router, err := api.NewRouter(checker, concourseClient)
+	router, err := api.NewRouter(checker)
 	if err != nil {
 		panic(err)
 	}

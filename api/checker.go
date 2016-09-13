@@ -14,16 +14,14 @@ import (
 type Checker struct {
 	pipelinePrefix string
 	apiPrefix      string
-	username       string
-	password       string
+	client *http.Client
 }
 
-func NewChecker(host, username, password string) *Checker {
+func NewChecker(host, team string, client *http.Client) *Checker {
 	return &Checker{
-		pipelinePrefix: fmt.Sprintf("%s/pipelines", host),
-		apiPrefix:      fmt.Sprintf("%s/api/v1/", host),
-		username:       username,
-		password:       password,
+		pipelinePrefix: fmt.Sprintf("%s/teams/%s/pipelines", host, team),
+		apiPrefix:      fmt.Sprintf("%s/api/v1/teams/%s/", host, team),
+		client:         client,
 	}
 }
 func (c *Checker) GetPipelineStatuses() ([]PipelineStatus, error) {
@@ -109,10 +107,7 @@ func (c *Checker) getFromConcourse(endpoint string) []byte {
 		panic(err)
 	}
 
-	req.SetBasicAuth(c.username, c.password)
-	client := http.Client{}
-
-	res, err := client.Do(req)
+	res, err := c.client.Do(req)
 	if err != nil {
 		panic(err)
 	}

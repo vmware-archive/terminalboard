@@ -11,10 +11,9 @@ type PipelineStatusGetter interface {
 	GetPipelineStatuses() ([]PipelineStatus, error)
 }
 
-func NewRouter(c PipelineStatusGetter, c2 PipelineStatusGetter) (http.Handler, error) {
+func NewRouter(c PipelineStatusGetter) (http.Handler, error) {
 	routa := mux.NewRouter()
 	routa.HandleFunc("/api/pipeline_statuses", AllowCORS(MakePipelineStatusHandler(c.GetPipelineStatuses)))
-	routa.HandleFunc("/api/v1/pipeline_statuses", AllowCORS(MakePipelineStatusHandler(c2.GetPipelineStatuses)))
 
 	return routa, nil
 }
