@@ -8,20 +8,20 @@ import (
 	"sort"
 	"time"
 
-	"github.com/concourse/atc"
+	"github.com/mfine30/terminalboard/concourse/models"
 )
 
 type Checker struct {
-	pipelinePrefix string
+	Host string
 	apiPrefix      string
-	client *http.Client
+	Client *http.Client
 }
 
 func NewChecker(host, team string, client *http.Client) *Checker {
 	return &Checker{
-		pipelinePrefix: fmt.Sprintf("%s/teams/%s/pipelines", host, team),
+		Host: host,
 		apiPrefix:      fmt.Sprintf("%s/api/v1/teams/%s/", host, team),
-		client:         client,
+		Client:         client,
 	}
 }
 func (c *Checker) GetPipelineStatuses() ([]PipelineStatus, error) {
@@ -45,8 +45,8 @@ func (c *Checker) getPipelineStatuses() []PipelineStatus {
 	statusChan := make(chan *PipelineStatus, len(pipelines))
 
 	for _, pipeline := range pipelines {
-		go func(pipelineName string) {
-			statusChan <- c.getPipelineJobsStatus(pipelineName)
+		go func(pipeline models.Pipeline) {
+			statusChan <- c.getPipelineJobsStatus(pipeline)
 		}(pipeline)
 	}
 
@@ -65,25 +65,19 @@ func (c *Checker) getPipelineStatuses() []PipelineStatus {
 	return statuses
 }
 
-func (c *Checker) getPipelines() []string {
+func (c *Checker) getPipelines() []models.Pipeline {
 	pipelinesEndpoint := c.apiPrefix + "pipelines"
 
 	body := c.getFromConcourse(pipelinesEndpoint)
 
-	var pipelines []atc.Pipeline
+	var pipelines []models.Pipeline
 	json.Unmarshal(body, &pipelines)
 
-	var pipelineNames []string
-
-	for _, pipeline := range pipelines {
-		pipelineNames = append(pipelineNames, pipeline.Name)
-	}
-
-	return pipelineNames
+	return pipelines
 }
 
-func (c *Checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
-	jobs := c.getPipelineJobs(pipeline)
+func (c *Checker) getPipelineJobsStatus(pipeline models.Pipeline) *PipelineStatus {
+	jobs := c.getPipelineJobs(pipeline.Name)
 	if len(jobs) > 0 {
 		status := c.getPipelineStatusFromJobs(pipeline, jobs)
 		return &status
@@ -91,11 +85,11 @@ func (c *Checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
 	return nil
 }
 
-func (c *Checker) getPipelineJobs(pipeline string) []atc.Job {
+func (c *Checker) getPipelineJobs(pipeline string) []models.Job {
 	pipelineJobsEndpoint := c.apiPrefix + "pipelines/" + pipeline + "/jobs"
 	body := c.getFromConcourse(pipelineJobsEndpoint)
 
-	var jobs []atc.Job
+	var jobs []models.Job
 	json.Unmarshal(body, &jobs)
 
 	return jobs
@@ -107,7 +101,7 @@ func (c *Checker) getFromConcourse(endpoint string) []byte {
 		panic(err)
 	}
 
-	res, err := c.client.Do(req)
+	res, err := c.Client.Do(req)
 	if err != nil {
 		panic(err)
 	}
@@ -120,12 +114,12 @@ func (c *Checker) getFromConcourse(endpoint string) []byte {
 	return body
 }
 
-func (c *Checker) getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
+func (c *Checker) getPipelineStatusFromJobs(pipeline models.Pipeline, jobs []models.Job) PipelineStatus {
 	pipelineStatus := PipelineStatus{
-		Name:             pipeline,
+		Name:             pipeline.Name,
 		Status:           SUCCESS,
 		CurrentlyRunning: false,
-		URL:              fmt.Sprintf("%s/%s", c.pipelinePrefix, pipeline),
+		URL:              c.Host + pipeline.URL,
 	}
 
 	for _, job := range jobs {

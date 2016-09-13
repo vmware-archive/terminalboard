@@ -6,14 +6,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/concourse/fly/rc"
+	"encoding/json"
+	"fmt"
 
 	"golang.org/x/oauth2"
 )
 
 type TargetToken struct {
-	Type  string
-	Value string
+	Type  string `json:"type"`
+	Value string `json:"value"`
 }
 
 func LoginWithBasicAuth(
@@ -23,33 +24,23 @@ func LoginWithBasicAuth(
 	password string,
 	insecure bool,
 ) (TargetToken, error) {
-	var unusedTarget rc.TargetName
-	caCert := ""
+	c := basicAuthHttpClient(username, password, insecure)
 
-	target, err := rc.NewBasicAuthTarget(
-		unusedTarget,
-		url,
-		teamName,
-		insecure,
-		username,
-		password,
-		caCert,
-	)
-	if err != nil {
-		// Untested as the only error returned is from an invalid CACert which we
-		// cannot force, as we provide an empty CACert and that is valid,
-		return TargetToken{}, err
-	}
-
-	token, err := target.Team().AuthToken()
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/teams/%s/auth/token", url, teamName), nil)
 	if err != nil {
 		return TargetToken{}, err
 	}
 
-	return TargetToken{
-		Type:  token.Type,
-		Value: token.Value,
-	}, nil
+	res, err := c.Do(req)
+	if err != nil {
+		return TargetToken{}, err
+	}
+	defer res.Body.Close()
+
+	var token TargetToken
+	err = json.NewDecoder(res.Body).Decode(&token)
+
+	return token, err
 }
 
 func OAuthHTTPClient(token TargetToken, insecure bool) *http.Client {
@@ -76,4 +67,38 @@ func OAuthHTTPClient(token TargetToken, insecure bool) *http.Client {
 	}
 
 	return &http.Client{Transport: transport}
+}
+
+func basicAuthHttpClient(
+	username string,
+	password string,
+	insecure bool,
+) *http.Client {
+	return &http.Client{
+		Transport: basicAuthTransport{
+			username: username,
+			password: password,
+			base: &http.Transport{
+				TLSClientConfig: &tls.Config{
+					InsecureSkipVerify: insecure,
+				},
+				Dial: (&net.Dialer{
+					Timeout: 10 * time.Second,
+				}).Dial,
+				Proxy: http.ProxyFromEnvironment,
+			},
+		},
+	}
+}
+
+type basicAuthTransport struct {
+	username string
+	password string
+
+	base http.RoundTripper
+}
+
+func (t basicAuthTransport) RoundTrip(r *http.Request) (*http.Response, error) {
+	r.SetBasicAuth(t.username, t.password)
+	return t.base.RoundTrip(r)
 }

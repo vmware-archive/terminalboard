@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+ROOT_DIR=$(cd $(dirname $(dirname $0)) && pwd)
+working_dir=/go/src/github.com/mfine30/terminalboard
+
+docker run \
+  -v "$ROOT_DIR":"$working_dir" \
+  -e "GOPATH=/go" \
+  -w "$working_dir" \
+  golang \
+  "$@"
+
