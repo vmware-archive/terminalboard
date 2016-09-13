@@ -4,38 +4,41 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
+	"encoding/json"
 )
 
-type RunFunc func() ([]byte, error)
-
-type router struct {
-	checker Checker
+type PipelineStatusGetter interface {
+	GetPipelineStatuses() ([]PipelineStatus, error)
 }
 
-func NewRouter(c Checker) (http.Handler, error) {
-
-	r := router{
-		checker: c,
-	}
-
+func NewRouter(c PipelineStatusGetter, c2 PipelineStatusGetter) (http.Handler, error) {
 	routa := mux.NewRouter()
-	routa.HandleFunc("/api/pipeline_statuses", r.getHandler(c.GetPipelineStatuses))
-	routa.HandleFunc("/api/fakes", r.getHandler(c.FakeStatuses))
+	routa.HandleFunc("/api/pipeline_statuses", AllowCORS(MakePipelineStatusHandler(c.GetPipelineStatuses)))
+	routa.HandleFunc("/api/v1/pipeline_statuses", AllowCORS(MakePipelineStatusHandler(c2.GetPipelineStatuses)))
 
 	return routa, nil
 }
 
-func (r *router) getHandler(run RunFunc) http.HandlerFunc {
+func MakePipelineStatusHandler(run func() ([]PipelineStatus, error)) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		body, err := run()
+		statuses, err := run()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte(err.Error()))
 			return
 		}
+
+		json.NewEncoder(w).Encode(statuses)
+	})
+}
+
+func AllowCORS(h http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
 		w.Header().Set("Access-Control-Allow-Headers", "X-PINGOTHER, Content-Type")
 		w.Header().Set("Access-Control-Allow-Method", "GET, OPTIONS")
-		w.Write(body)
+
+		h(w, req)
 	})
 }
+

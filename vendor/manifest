@@ -281,6 +281,33 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/concourse/fly/rc",
+			"repository": "https://github.com/concourse/fly",
+			"vcs": "git",
+			"revision": "f58a88b137249d0f32501d03541841fd4a5c3c54",
+			"branch": "master",
+			"path": "/rc",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/concourse/fly/ui",
+			"repository": "https://github.com/concourse/fly",
+			"vcs": "git",
+			"revision": "f58a88b137249d0f32501d03541841fd4a5c3c54",
+			"branch": "master",
+			"path": "ui",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/concourse/fly/version",
+			"repository": "https://github.com/concourse/fly",
+			"vcs": "git",
+			"revision": "f58a88b137249d0f32501d03541841fd4a5c3c54",
+			"branch": "master",
+			"path": "version",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/concourse/go-concourse",
 			"repository": "https://github.com/concourse/go-concourse",
 			"vcs": "git",
@@ -317,6 +344,14 @@
 			"repository": "https://github.com/elazarl/go-bindata-assetfs",
 			"vcs": "git",
 			"revision": "9a6736ed45b44bf3835afeebb3034b57ed329f3e",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/fatih/color",
+			"repository": "https://github.com/fatih/color",
+			"vcs": "git",
+			"revision": "87d4004f2ab62d0d255e0a38f1680aa534549fe3",
 			"branch": "master",
 			"notests": true
 		},

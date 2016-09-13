@@ -11,70 +11,29 @@ import (
 	"github.com/concourse/atc"
 )
 
-type Checker interface {
-	GetPipelineStatuses() ([]byte, error)
-	FakeStatuses() ([]byte, error)
-}
-
-type checker struct {
+type Checker struct {
 	pipelinePrefix string
 	apiPrefix      string
 	username       string
 	password       string
 }
 
-func NewChecker(host, username, password string) Checker {
-	return &checker{
+func NewChecker(host, username, password string) *Checker {
+	return &Checker{
 		pipelinePrefix: fmt.Sprintf("%s/pipelines", host),
 		apiPrefix:      fmt.Sprintf("%s/api/v1/", host),
 		username:       username,
 		password:       password,
 	}
 }
-
-func (c *checker) FakeStatuses() ([]byte, error) {
-	statuses := []PipelineStatus{
-		PipelineStatus{
-			Name:             "first",
-			Status:           SUCCESS,
-			CurrentlyRunning: false,
-		},
-		PipelineStatus{
-			Name:             "second",
-			Status:           FAILURE,
-			CurrentlyRunning: true,
-		},
-		PipelineStatus{
-			Name:             "another-pipeline-long-name",
-			Status:           STOPPED,
-			CurrentlyRunning: false,
-		},
-		PipelineStatus{
-			Name:             "yet-another-pipeline-long-name",
-			Status:           SUCCESS,
-			CurrentlyRunning: true,
-		},
-	}
-
-	data, err := json.Marshal(statuses)
-	if err != nil {
-		panic(err)
-	}
-	return data, nil
-}
-
-func (c *checker) GetPipelineStatuses() ([]byte, error) {
+func (c *Checker) GetPipelineStatuses() ([]PipelineStatus, error) {
 	statuses := c.getPipelineStatuses()
 	sort.Sort(PipelineStatuses(statuses))
 
-	data, err := json.Marshal(statuses)
-	if err != nil {
-		panic(err)
-	}
-	return data, nil
+	return statuses, nil
 }
 
-func (c *checker) getPipelineStatuses() []PipelineStatus {
+func (c *Checker) getPipelineStatuses() []PipelineStatus {
 	fmt.Println("Getting all pipelines")
 	pipelines := c.getPipelines()
 	fmt.Println(fmt.Sprintf(
@@ -108,7 +67,7 @@ func (c *checker) getPipelineStatuses() []PipelineStatus {
 	return statuses
 }
 
-func (c *checker) getPipelines() []string {
+func (c *Checker) getPipelines() []string {
 	pipelinesEndpoint := c.apiPrefix + "pipelines"
 
 	body := c.getFromConcourse(pipelinesEndpoint)
@@ -125,7 +84,7 @@ func (c *checker) getPipelines() []string {
 	return pipelineNames
 }
 
-func (c *checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
+func (c *Checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
 	jobs := c.getPipelineJobs(pipeline)
 	if len(jobs) > 0 {
 		status := c.getPipelineStatusFromJobs(pipeline, jobs)
@@ -134,7 +93,7 @@ func (c *checker) getPipelineJobsStatus(pipeline string) *PipelineStatus {
 	return nil
 }
 
-func (c *checker) getPipelineJobs(pipeline string) []atc.Job {
+func (c *Checker) getPipelineJobs(pipeline string) []atc.Job {
 	pipelineJobsEndpoint := c.apiPrefix + "pipelines/" + pipeline + "/jobs"
 	body := c.getFromConcourse(pipelineJobsEndpoint)
 
@@ -144,7 +103,7 @@ func (c *checker) getPipelineJobs(pipeline string) []atc.Job {
 	return jobs
 }
 
-func (c *checker) getFromConcourse(endpoint string) []byte {
+func (c *Checker) getFromConcourse(endpoint string) []byte {
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
 		panic(err)
@@ -166,7 +125,7 @@ func (c *checker) getFromConcourse(endpoint string) []byte {
 	return body
 }
 
-func (c *checker) getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
+func (c *Checker) getPipelineStatusFromJobs(pipeline string, jobs []atc.Job) PipelineStatus {
 	pipelineStatus := PipelineStatus{
 		Name:             pipeline,
 		Status:           SUCCESS,

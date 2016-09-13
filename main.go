@@ -5,7 +5,10 @@ import (
 	"net/http"
 	"os"
 
+	gc "github.com/concourse/go-concourse/concourse"
 	"github.com/mfine30/terminalboard/api"
+	capi "github.com/mfine30/terminalboard/concourse/api"
+	"github.com/mfine30/terminalboard/concourse"
 )
 
 const (
@@ -13,6 +16,7 @@ const (
 	concourseUsernameEnvKey = "CONCOURSE_USERNAME"
 	concoursePasswordEnvKey = "CONCOURSE_PASSWORD"
 	portEnvKey              = "PORT"
+	defaultTeam             = "main"
 )
 
 func main() {
@@ -37,8 +41,29 @@ func main() {
 		panic(fmt.Sprintf("port must be provided via %s", portEnvKey))
 	}
 
+	token, err := capi.LoginWithBasicAuth(
+		concourseHost,
+		defaultTeam,
+		concourseUsername,
+		concoursePassword,
+		true,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	httpClient := capi.OAuthHTTPClient(token, true)
+
+	gClient := gc.NewClient(concourseHost, httpClient)
+	gClient.Team(defaultTeam)
+
 	checker := api.NewChecker(concourseHost, concourseUsername, concoursePassword)
-	router, err := api.NewRouter(checker)
+	concourseClient := &concourse.Checker{
+		Client: gClient,
+	}
+
+	router, err := api.NewRouter(checker, concourseClient)
 	if err != nil {
 		panic(err)
 	}
