@@ -34,6 +34,10 @@ func (c *Checker) GetPipelineStatuses() ([]PipelineStatus, error) {
 func (c *Checker) getPipelineStatuses() []PipelineStatus {
 	fmt.Println("Getting all pipelines")
 	pipelines := c.getPipelines()
+	if len(pipelines) == 0 {
+		panic("No pipelines found")
+	}
+
 	fmt.Println(fmt.Sprintf(
 		"Getting all pipelines complete, total count: %d", len(pipelines)))
 
@@ -104,6 +108,10 @@ func (c *Checker) getFromConcourse(endpoint string) []byte {
 	res, err := c.Client.Do(req)
 	if err != nil {
 		panic(err)
+	}
+
+	if res.StatusCode != 200 {
+		panic(fmt.Sprintf("Received non-200 response, %d", res.StatusCode))
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
