@@ -12,48 +12,57 @@ import (
 )
 
 type Checker struct {
-	Host string
-	apiPrefix      string
-	Client *http.Client
+	Host      string
+	apiPrefix string
+	Client    *http.Client
 }
 
 func NewChecker(host, team string, client *http.Client) *Checker {
 	return &Checker{
-		Host: host,
-		apiPrefix:      fmt.Sprintf("%s/api/v1/teams/%s/", host, team),
-		Client:         client,
+		Host:      host,
+		apiPrefix: fmt.Sprintf("%s/api/v1/teams/%s/", host, team),
+		Client:    client,
 	}
 }
 func (c *Checker) GetPipelineStatuses() ([]PipelineStatus, error) {
-	statuses := c.getPipelineStatuses()
+	statuses, err := c.getPipelineStatuses()
+	if err != nil {
+		return nil, err
+	}
 	sort.Sort(PipelineStatuses(statuses))
 
 	return statuses, nil
 }
 
-func (c *Checker) getPipelineStatuses() []PipelineStatus {
+func (c *Checker) getPipelineStatuses() ([]PipelineStatus, error) {
 	fmt.Println("Getting all pipelines")
-	pipelines := c.getPipelines()
+	pipelines, err := c.getPipelines()
+	if err != nil {
+		return nil, err
+	}
+
 	if len(pipelines) == 0 {
-		panic("No pipelines found")
+		return nil, fmt.Errorf("No pipelines found")
 	}
 
 	fmt.Println(fmt.Sprintf(
 		"Getting all pipelines complete, total count: %d", len(pipelines)))
 
-	var statuses []PipelineStatus
-
 	startTime := time.Now()
 	fmt.Println("Getting all jobs")
 
 	statusChan := make(chan *PipelineStatus, len(pipelines))
+	errChan := make(chan error, len(pipelines))
 
 	for _, pipeline := range pipelines {
 		go func(pipeline models.Pipeline) {
-			statusChan <- c.getPipelineJobsStatus(pipeline)
+			status, err := c.getPipelineJobsStatus(pipeline)
+			statusChan <- status
+			errChan <- err
 		}(pipeline)
 	}
 
+	var statuses []PipelineStatus
 	for i := 0; i < len(pipelines); i++ {
 		status := <-statusChan
 		if status != nil {
@@ -61,65 +70,93 @@ func (c *Checker) getPipelineStatuses() []PipelineStatus {
 		}
 	}
 
+	var errors []error
+	for i := 0; i < len(pipelines); i++ {
+		err := <-errChan
+		if err != nil {
+			errors = append(errors, err)
+		}
+	}
+
+	if len(errors) > 0 {
+		return nil, errors[0]
+	}
+
 	endTime := time.Now()
 
 	elapsedTime := endTime.Sub(startTime)
 	fmt.Println(fmt.Sprintf(
 		"Getting all jobs complete, took %f seconds", elapsedTime.Seconds()))
-	return statuses
+	return statuses, nil
 }
 
-func (c *Checker) getPipelines() []models.Pipeline {
+func (c *Checker) getPipelines() ([]models.Pipeline, error) {
 	pipelinesEndpoint := c.apiPrefix + "pipelines"
 
-	body := c.getFromConcourse(pipelinesEndpoint)
+	body, err := c.getFromConcourse(pipelinesEndpoint)
+	if err != nil {
+		return nil, err
+	}
 
 	var pipelines []models.Pipeline
-	json.Unmarshal(body, &pipelines)
+	err = json.Unmarshal(body, &pipelines)
+	if err != nil {
+		return nil, err
+	}
 
-	return pipelines
+	return pipelines, nil
 }
 
-func (c *Checker) getPipelineJobsStatus(pipeline models.Pipeline) *PipelineStatus {
-	jobs := c.getPipelineJobs(pipeline.Name)
+func (c *Checker) getPipelineJobsStatus(pipeline models.Pipeline) (*PipelineStatus, error) {
+	jobs, err := c.getPipelineJobs(pipeline.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	if len(jobs) > 0 {
 		status := c.getPipelineStatusFromJobs(pipeline, jobs)
-		return &status
+		return &status, nil
 	}
-	return nil
+	return nil, nil
 }
 
-func (c *Checker) getPipelineJobs(pipeline string) []models.Job {
+func (c *Checker) getPipelineJobs(pipeline string) ([]models.Job, error) {
 	pipelineJobsEndpoint := c.apiPrefix + "pipelines/" + pipeline + "/jobs"
-	body := c.getFromConcourse(pipelineJobsEndpoint)
+	body, err := c.getFromConcourse(pipelineJobsEndpoint)
+	if err != nil {
+		return nil, err
+	}
 
 	var jobs []models.Job
-	json.Unmarshal(body, &jobs)
+	err = json.Unmarshal(body, &jobs)
+	if err != nil {
+		return nil, err
+	}
 
-	return jobs
+	return jobs, nil
 }
 
-func (c *Checker) getFromConcourse(endpoint string) []byte {
+func (c *Checker) getFromConcourse(endpoint string) ([]byte, error) {
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	res, err := c.Client.Do(req)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
 	if res.StatusCode != 200 {
-		panic(fmt.Sprintf("Received non-200 response, %d", res.StatusCode))
+		return nil, fmt.Errorf("Received non-200 response: %d", res.StatusCode)
 	}
 
 	body, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return body
+	return body, nil
 }
 
 func (c *Checker) getPipelineStatusFromJobs(pipeline models.Pipeline, jobs []models.Job) PipelineStatus {
