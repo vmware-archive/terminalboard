@@ -43,10 +43,8 @@ func LoginWithBasicAuth(
 	return token, err
 }
 
-func OAuthHTTPClient(token TargetToken, insecure bool) *http.Client {
-	var transport http.RoundTripper
-
-	transport = &http.Transport{
+func OAuthHTTPClient(tokenSource oauth2.TokenSource, insecure bool) *http.Client {
+	baseTransport := &http.Transport{
 		TLSClientConfig: &tls.Config{
 			InsecureSkipVerify: insecure,
 		},
@@ -56,14 +54,9 @@ func OAuthHTTPClient(token TargetToken, insecure bool) *http.Client {
 		Proxy: http.ProxyFromEnvironment,
 	}
 
-	oAuthToken := &oauth2.Token{
-		TokenType:   token.Type,
-		AccessToken: token.Value,
-	}
-
-	transport = &oauth2.Transport{
-		Source: oauth2.StaticTokenSource(oAuthToken),
-		Base:   transport,
+	transport := &oauth2.Transport{
+		Source: tokenSource,
+		Base:   baseTransport,
 	}
 
 	return &http.Client{Transport: transport}

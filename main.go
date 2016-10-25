@@ -7,6 +7,7 @@ import (
 
 	"github.com/pivotal-cf/terminalboard/api"
 	capi "github.com/pivotal-cf/terminalboard/concourse/api"
+	"golang.org/x/oauth2"
 )
 
 const (
@@ -39,19 +40,14 @@ func main() {
 		panic(fmt.Sprintf("port must be provided via %s", portEnvKey))
 	}
 
-	token, err := capi.LoginWithBasicAuth(
-		concourseHost,
-		defaultTeam,
-		concourseUsername,
-		concoursePassword,
-		true,
-	)
-
-	if err != nil {
-		panic(err)
+	cts := concourseTokenSource{
+		concourseHost:     concourseHost,
+		concourseUsername: concourseUsername,
+		concoursePassword: concoursePassword,
+		defaultTeam:       defaultTeam,
 	}
 
-	httpClient := capi.OAuthHTTPClient(token, true)
+	httpClient := capi.OAuthHTTPClient(cts, true)
 
 	checker := api.NewChecker(concourseHost, defaultTeam, httpClient)
 
@@ -66,4 +62,32 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+}
+
+type concourseTokenSource struct {
+	concourseHost     string
+	defaultTeam       string
+	concourseUsername string
+	concoursePassword string
+}
+
+func (c concourseTokenSource) Token() (*oauth2.Token, error) {
+	token, err := capi.LoginWithBasicAuth(
+		c.concourseHost,
+		c.defaultTeam,
+		c.concourseUsername,
+		c.concoursePassword,
+		true,
+	)
+
+	if err != nil {
+		panic(err)
+	}
+
+	oAuthToken := &oauth2.Token{
+		TokenType:   token.Type,
+		AccessToken: token.Value,
+	}
+
+	return oAuthToken, nil
 }
