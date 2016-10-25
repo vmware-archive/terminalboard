@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/mfine30/terminalboard/api"
-	capi "github.com/mfine30/terminalboard/concourse/api"
+	"github.com/pivotal-cf/terminalboard/api"
+	capi "github.com/pivotal-cf/terminalboard/concourse/api"
 )
 
 const (

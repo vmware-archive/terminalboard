@@ -8,7 +8,7 @@ import (
 	"sort"
 	"time"
 
-	"github.com/mfine30/terminalboard/concourse/models"
+	"github.com/pivotal-cf/terminalboard/concourse/models"
 )
 
 type Checker struct {
