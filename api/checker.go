@@ -143,6 +143,7 @@ func (c *Checker) getFromConcourse(endpoint string) ([]byte, error) {
 	}
 
 	res, err := c.Client.Do(req)
+	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
