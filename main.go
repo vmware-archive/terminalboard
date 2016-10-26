@@ -2,8 +2,11 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+
+	_ "net/http/pprof"
 
 	"github.com/pivotal-cf/terminalboard/api"
 	capi "github.com/pivotal-cf/terminalboard/concourse/api"
@@ -39,6 +42,10 @@ func main() {
 	if port == "" {
 		panic(fmt.Sprintf("port must be provided via %s", portEnvKey))
 	}
+
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
 
 	cts := concourseTokenSource{
 		concourseHost:     concourseHost,

@@ -3,8 +3,10 @@ package api
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
 	"encoding/json"
+
+	"github.com/gorilla/mux"
+	"github.com/pivotal-cf/terminalboard/api/middleware"
 )
 
 type PipelineStatusGetter interface {
@@ -12,8 +14,10 @@ type PipelineStatusGetter interface {
 }
 
 func NewRouter(c PipelineStatusGetter) (http.Handler, error) {
+	pr := middleware.NewPanicRecovery()
+
 	routa := mux.NewRouter()
-	routa.HandleFunc("/api/pipeline_statuses", AllowCORS(MakePipelineStatusHandler(c.GetPipelineStatuses)))
+	routa.Handle("/api/pipeline_statuses", pr.Wrap(middleware.AllowCORS(MakePipelineStatusHandler(c.GetPipelineStatuses))))
 
 	return routa, nil
 }
@@ -30,14 +34,3 @@ func MakePipelineStatusHandler(run func() ([]PipelineStatus, error)) http.Handle
 		json.NewEncoder(w).Encode(statuses)
 	})
 }
-
-func AllowCORS(h http.HandlerFunc) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Headers", "X-PINGOTHER, Content-Type")
-		w.Header().Set("Access-Control-Allow-Method", "GET, OPTIONS")
-
-		h(w, req)
-	})
-}
-
