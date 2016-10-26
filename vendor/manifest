@@ -251,6 +251,14 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/onsi/gomega",
+			"repository": "https://github.com/onsi/gomega",
+			"vcs": "git",
+			"revision": "7e2072f716a912a29b2dfa54398faf096a9909e3",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "go4.org/syncutil/singleflight",
 			"repository": "https://github.com/camlistore/go4",
 			"vcs": "git",
@@ -371,6 +379,14 @@
 			"vcs": "git",
 			"revision": "c5c66f12211080d29aa99adcf073946f6776fc7b",
 			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/yaml.v2",
+			"repository": "https://gopkg.in/yaml.v2",
+			"vcs": "git",
+			"revision": "a5b47d31c556af34a302ce5d659e6fea44d90de0",
+			"branch": "v2",
 			"notests": true
 		}
 	]
