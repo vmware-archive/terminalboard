@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -eu
+
+: "${CONCOURSE_HOST}"
+: "${CONCOURSE_USERNAME}"
+: "${CONCOURSE_PASSWORD}"
+
+my_dir="$( cd "$( dirname "${0}" )" && pwd )"
+base_dir="$( cd "${my_dir}/.." && pwd )"
+
+pushd "${base_dir}" > /dev/null
+
+# Set CGO_ENABLED=1 for the race detector
+CGO_ENABLED=1 ginkgo \
+  -r \
+  -p \
+  -race \
+  -randomizeAllSpecs \
+  -randomizeSuites \
+   "$@"
+
+popd > /dev/null
