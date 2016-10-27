@@ -142,11 +142,12 @@ func (c *Checker) getFromConcourse(endpoint string) ([]byte, error) {
 		return nil, err
 	}
 
+	// fmt.Printf("Sending request to %s", endpoint)
 	res, err := c.Client.Do(req)
-	defer res.Body.Close()
 	if err != nil {
 		return nil, err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode != 200 {
 		return nil, fmt.Errorf("Received non-200 response: %d", res.StatusCode)
@@ -157,6 +158,7 @@ func (c *Checker) getFromConcourse(endpoint string) ([]byte, error) {
 		return nil, err
 	}
 
+	// fmt.Printf("Received response: %s")
 	return body, nil
 }
 

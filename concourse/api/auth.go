@@ -4,6 +4,8 @@ import (
 	"crypto/tls"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"os"
 	"time"
 
 	"encoding/json"
@@ -24,6 +26,7 @@ func LoginWithBasicAuth(
 	password string,
 	insecure bool,
 ) (TargetToken, error) {
+	fmt.Println(fmt.Sprintf("Logging in to: '%s'", url))
 	c := basicAuthHttpClient(username, password, insecure)
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/api/v1/teams/%s/auth/token", url, teamName), nil)
@@ -37,8 +40,20 @@ func LoginWithBasicAuth(
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode != http.StatusOK {
+		return TargetToken{}, fmt.Errorf("Unexpected response code: '%d'", res.StatusCode)
+	}
+
 	var token TargetToken
 	err = json.NewDecoder(res.Body).Decode(&token)
+	if err != nil {
+		dump, _ := httputil.DumpResponse(res, true)
+		fmt.Fprintln(os.Stderr, fmt.Sprintf(
+			"Error decoding request: '%s', response dump: '%q'",
+			err.Error(),
+			dump,
+		))
+	}
 
 	return token, err
 }

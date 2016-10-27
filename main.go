@@ -2,8 +2,12 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
+	"time"
+
+	_ "net/http/pprof"
 
 	"github.com/pivotal-cf/terminalboard/api"
 	capi "github.com/pivotal-cf/terminalboard/concourse/api"
@@ -40,6 +44,10 @@ func main() {
 		panic(fmt.Sprintf("port must be provided via %s", portEnvKey))
 	}
 
+	go func() {
+		log.Println(http.ListenAndServe("localhost:6060", nil))
+	}()
+
 	cts := concourseTokenSource{
 		concourseHost:     concourseHost,
 		concourseUsername: concourseUsername,
@@ -47,7 +55,7 @@ func main() {
 		defaultTeam:       defaultTeam,
 	}
 
-	httpClient := capi.OAuthHTTPClient(cts, true)
+	httpClient := capi.OAuthHTTPClient(oauth2.ReuseTokenSource(nil, cts), true)
 
 	checker := api.NewChecker(concourseHost, defaultTeam, httpClient)
 
@@ -81,12 +89,16 @@ func (c concourseTokenSource) Token() (*oauth2.Token, error) {
 	)
 
 	if err != nil {
-		panic(err)
+		fmt.Fprintln(os.Stderr, fmt.Sprintf(
+			"Error getting token: '%s'", err.Error(),
+		))
+		return nil, err
 	}
 
 	oAuthToken := &oauth2.Token{
 		TokenType:   token.Type,
 		AccessToken: token.Value,
+		Expiry:      time.Now().Add(24 * time.Hour),
 	}
 
 	return oAuthToken, nil
