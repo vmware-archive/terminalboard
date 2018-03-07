@@ -167,7 +167,7 @@ func (c *Checker) getPipelineStatusFromJobs(pipeline models.Pipeline, jobs []mod
 		Name:             pipeline.Name,
 		Status:           SUCCESS,
 		CurrentlyRunning: false,
-		URL:              c.Host + pipeline.URL,
+		URL:              c.Host + "/teams/" + pipeline.TeamName + "/pipelines/" + pipeline.Name,
 	}
 
 	for _, job := range jobs {
